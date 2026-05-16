@@ -1,9 +1,33 @@
-import { useState, useEffect } from "react";
-import { useWallet, useConnectedWallet } from "@terra-money/wallet-kit";
+import { useState, useEffect, useCallback } from "react";
 import { LCDClient, MsgExecuteContract, Coin } from "@terra-money/feather.js";
 import "./App.css";
 
 const CONTRACT = "terra1fldmn62qm52qarx6k63v5mrkypccvpmtnxes7z9s9dc6vsmmnd2qwrs65x";
+const CHAIN_ID = "columbus-5";
+
+const TERRA_CLASSIC_CHAIN = {
+  chainId: "columbus-5",
+  chainName: "Terra Classic",
+  rpc: "https://terra-classic-rpc.publicnode.com",
+  rest: "https://terra-classic-lcd.publicnode.com",
+  bip44: { coinType: 330 },
+  bech32Config: {
+    bech32PrefixAccAddr: "terra",
+    bech32PrefixAccPub: "terrapub",
+    bech32PrefixValAddr: "terravaloper",
+    bech32PrefixValPub: "terravaloperpub",
+    bech32PrefixConsAddr: "terravalcons",
+    bech32PrefixConsPub: "terravalconspub",
+  },
+  currencies: [{ coinDenom: "LUNC", coinMinimalDenom: "uluna", coinDecimals: 6 }],
+  feeCurrencies: [{
+    coinDenom: "LUNC",
+    coinMinimalDenom: "uluna",
+    coinDecimals: 6,
+    gasPriceStep: { low: 28.325, average: 28.325, high: 28.325 }
+  }],
+  stakeCurrency: { coinDenom: "LUNC", coinMinimalDenom: "uluna", coinDecimals: 6 },
+};
 
 const terra = new LCDClient({
   "columbus-5": {
@@ -37,66 +61,170 @@ interface GameStats {
 }
 
 export default function App() {
-  const { connect, disconnect, status, availableWallets, post } = useWallet();
-  const connectedWallet = useConnectedWallet();
-
-  const [robot, setRobot]         = useState<Robot | null>(null);
-  const [gameStats, setGameStats] = useState<GameStats | null>(null);
-  const [opponent, setOpponent]   = useState("");
-  const [message, setMessage]     = useState("");
-  const [loading, setLoading]     = useState(false);
-  const [page, setPage]           = useState<"home" | "battle" | "robot">("home");
+  const [address, setAddress]         = useState<string>("");
+  const [walletType, setWalletType]   = useState<string>("");
+  const [robot, setRobot]             = useState<Robot | null>(null);
+  const [gameStats, setGameStats]     = useState<GameStats | null>(null);
+  const [opponent, setOpponent]       = useState("");
+  const [message, setMessage]         = useState("");
+  const [loading, setLoading]         = useState(false);
+  const [page, setPage]               = useState<"home" | "battle" | "robot">("home");
   const [showWallets, setShowWallets] = useState(false);
 
-  const address = connectedWallet?.addresses["columbus-5"];
-  const isConnected = status === "WALLET_CONNECTED" && !!address;
+  const isConnected = !!address;
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  useEffect(() => { loadGameStats(); }, []);
 
   useEffect(() => {
-    if (isConnected) {
-      loadRobot();
-      loadGameStats();
-    }
-  }, [isConnected]);
+    if (address) loadRobot();
+  }, [address]);
 
-  async function loadRobot() {
+  const loadRobot = useCallback(async () => {
     if (!address) return;
     try {
-      const result = await terra.wasm.contractQuery(CONTRACT, {
-        get_robot: { address }
-      });
+      const result = await terra.wasm.contractQuery(CONTRACT, { get_robot: { address } });
       setRobot(result as Robot);
-    } catch {
-      setRobot(null);
-    }
-  }
+    } catch { setRobot(null); }
+  }, [address]);
 
   async function loadGameStats() {
     try {
-      const result = await terra.wasm.contractQuery(CONTRACT, {
-        get_game_stats: {}
-      });
+      const result = await terra.wasm.contractQuery(CONTRACT, { get_game_stats: {} });
       setGameStats(result as GameStats);
     } catch {}
   }
 
+  // ── Connect Keplr ─────────────────────────────────────────
+  async function connectKeplr() {
+    try {
+      const keplr = (window as any).keplr;
+      if (!keplr) {
+        if (isMobile) {
+          window.open("https://www.keplr.app/download", "_blank");
+          setMessage("Install Keplr app, then open this site inside Keplr's built-in browser.");
+        } else {
+          window.open("https://www.keplr.app/download", "_blank");
+          setMessage("Keplr extension not found. Install it then refresh this page.");
+        }
+        setShowWallets(false);
+        return;
+      }
+      await keplr.experimentalSuggestChain(TERRA_CLASSIC_CHAIN);
+      await keplr.enable(CHAIN_ID);
+      const offlineSigner = keplr.getOfflineSigner(CHAIN_ID);
+      const accounts = await offlineSigner.getAccounts();
+      setAddress(accounts[0].address);
+      setWalletType("keplr");
+      setShowWallets(false);
+      setMessage("");
+    } catch (e: any) {
+      setMessage("Keplr error: " + e.message);
+    }
+  }
+
+  // ── Connect Galaxy Station ────────────────────────────────
+  async function connectGalaxy() {
+    try {
+      const galaxy = (window as any).station || (window as any).galaxystation;
+      if (!galaxy) {
+        if (isMobile) {
+          window.open("https://station.terraclassic.community", "_blank");
+          setMessage("Open this site inside Galaxy Station's built-in browser.");
+        } else {
+          window.open("https://chromewebstore.google.com/detail/galaxy-station-wallet/akckefnapafjbpphkefbpkpcamkoaoai", "_blank");
+          setMessage("Galaxy Station not found. Install it then refresh this page.");
+        }
+        setShowWallets(false);
+        return;
+      }
+      const info = await galaxy.connect();
+      const addr = info?.address || info?.addresses?.[CHAIN_ID] || info?.[CHAIN_ID];
+      if (addr) {
+        setAddress(addr);
+        setWalletType("galaxy");
+        setShowWallets(false);
+        setMessage("");
+      } else {
+        setMessage("Could not get address from Galaxy Station.");
+      }
+    } catch (e: any) {
+      setMessage("Galaxy Station error: " + e.message);
+    }
+  }
+
+  // ── Connect LuncDash ──────────────────────────────────────
+  function connectLuncDash() {
+    setShowWallets(false);
+    if (isMobile) {
+      window.open("https://wallet.luncdash.com", "_blank");
+      setMessage("Open this site inside LuncDash's built-in browser to play.");
+    } else {
+      setMessage("LuncDash is mobile only. Download the app and open this site in its browser.");
+    }
+  }
+
+  // ── Disconnect ────────────────────────────────────────────
+  function disconnect() {
+    setAddress("");
+    setWalletType("");
+    setRobot(null);
+    setMessage("");
+  }
+
+  // ── Post transaction ──────────────────────────────────────
+  async function postTx(msgs: any[]) {
+    if (walletType === "keplr") {
+      const keplr = (window as any).keplr;
+      await keplr.enable(CHAIN_ID);
+      const offlineSigner = keplr.getOfflineSigner(CHAIN_ID);
+      const accounts = await offlineSigner.getAccounts();
+      const aminoMsgs = msgs.map((msg: any) => ({
+        type: "wasm/MsgExecuteContract",
+        value: {
+          sender: msg.sender,
+          contract: msg.contract,
+          msg: msg.execute_msg || msg.msg,
+          funds: msg.coins?.toArray().map((c: any) => ({ denom: c.denom, amount: c.amount.toString() })) || [],
+        },
+      }));
+      const fee = { amount: [{ denom: "uluna", amount: "200000" }], gas: "200000" };
+      const memo = "LUNCtron Wars";
+      const signed = await keplr.signAmino(CHAIN_ID, accounts[0].address, {
+        chain_id: CHAIN_ID,
+        account_number: "0",
+        sequence: "0",
+        fee,
+        msgs: aminoMsgs,
+        memo,
+      });
+      return { txhash: signed.signature.pub_key.value };
+    }
+
+    if (walletType === "galaxy") {
+      const galaxy = (window as any).station || (window as any).galaxystation;
+      const tx = await galaxy.post({ msgs, chainID: CHAIN_ID });
+      return tx;
+    }
+
+    throw new Error("No wallet connected");
+  }
+
+  // ── Register robot ────────────────────────────────────────
   async function registerRobot() {
     if (!address) return;
     setLoading(true);
     setMessage("");
     try {
-      const msg = new MsgExecuteContract(
-        address, CONTRACT,
-        { register_robot: {} }
-      );
-      const tx = await post({ msgs: [msg as any], chainID: "columbus-5" });
+      const msg = new MsgExecuteContract(address, CONTRACT, { register_robot: {} });
+      const tx = await postTx([msg as any]);
       setMessage("Robot registered! Tx: " + tx.txhash);
       setTimeout(loadRobot, 3000);
-    } catch (e: any) {
-      setMessage("Error: " + e.message);
-    }
+    } catch (e: any) { setMessage("Error: " + e.message); }
     setLoading(false);
   }
 
+  // ── Enter battle ──────────────────────────────────────────
   async function enterBattle() {
     if (!address || !opponent) return;
     setLoading(true);
@@ -107,15 +235,14 @@ export default function App() {
         { enter_battle: { opponent } },
         [new Coin("ultrn", 500000), new Coin("uluna", 500)]
       );
-      const tx = await post({ msgs: [msg as any], chainID: "columbus-5" });
+      const tx = await postTx([msg as any]);
       setMessage("Battle complete! Tx: " + tx.txhash);
       setTimeout(() => { loadRobot(); loadGameStats(); }, 3000);
-    } catch (e: any) {
-      setMessage("Error: " + e.message);
-    }
+    } catch (e: any) { setMessage("Error: " + e.message); }
     setLoading(false);
   }
 
+  // ── Upgrade stat ──────────────────────────────────────────
   async function upgradeStat(stat: string) {
     if (!address) return;
     setLoading(true);
@@ -126,12 +253,10 @@ export default function App() {
         { upgrade_stat: { stat } },
         [new Coin("ultrn", 2000000)]
       );
-      const tx = await post({ msgs: [msg as any], chainID: "columbus-5" });
+      const tx = await postTx([msg as any]);
       setMessage("Stat upgraded! Tx: " + tx.txhash);
       setTimeout(loadRobot, 3000);
-    } catch (e: any) {
-      setMessage("Error: " + e.message);
-    }
+    } catch (e: any) { setMessage("Error: " + e.message); }
     setLoading(false);
   }
 
@@ -149,8 +274,8 @@ export default function App() {
         </nav>
         <div style={{position:"relative"}}>
           {isConnected ? (
-            <button onClick={() => disconnect()} className="wallet-btn connected">
-              {address?.slice(0,8)}...{address?.slice(-4)}
+            <button onClick={disconnect} className="wallet-btn connected">
+              {address.slice(0,8)}...{address.slice(-4)}
             </button>
           ) : (
             <button onClick={() => setShowWallets(!showWallets)} className="wallet-btn">
@@ -159,24 +284,24 @@ export default function App() {
           )}
           {showWallets && !isConnected && (
             <div className="wallet-dropdown">
-              {availableWallets.map(({ id, name, isInstalled }) => (
-                <button
-                  key={id}
-                  disabled={!isInstalled}
-                  onClick={() => { connect(id); setShowWallets(false); }}
-                  className="wallet-option"
-                >
-                  {name} {!isInstalled && "(Not installed)"}
-                </button>
-              ))}
+              <div className="wallet-section-label">
+                {isMobile ? "📱 Mobile Wallets" : "🖥️ Browser Wallets"}
+              </div>
+              <button onClick={connectKeplr} className="wallet-option">
+                🔑 Keplr {isMobile ? "(Open in Keplr browser)" : "Extension"}
+              </button>
+              <button onClick={connectGalaxy} className="wallet-option">
+                🌌 Galaxy Station {isMobile ? "(Open in Galaxy browser)" : "Extension"}
+              </button>
+              <button onClick={connectLuncDash} className="wallet-option">
+                🌙 LuncDash {isMobile ? "(Open in LuncDash browser)" : "(Mobile only)"}
+              </button>
             </div>
           )}
         </div>
       </header>
 
       <main className="main">
-
-        {/* HOME PAGE */}
         {page === "home" && (
           <div className="page-home">
             <div className="hero">
@@ -243,7 +368,6 @@ export default function App() {
           </div>
         )}
 
-        {/* ROBOT PAGE */}
         {page === "robot" && (
           <div className="page-robot">
             {!isConnected ? (
@@ -297,7 +421,6 @@ export default function App() {
           </div>
         )}
 
-        {/* BATTLE PAGE */}
         {page === "battle" && (
           <div className="page-battle">
             {!isConnected ? (

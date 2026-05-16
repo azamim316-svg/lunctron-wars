@@ -88,7 +88,7 @@ export default function App() {
         address, CONTRACT,
         { register_robot: {} }
       );
-      const tx = await post({ msgs: [msg], chainID: "columbus-5" });
+      const tx = await post({ msgs: [msg as any], chainID: "columbus-5" });
       setMessage("Robot registered! Tx: " + tx.txhash);
       setTimeout(loadRobot, 3000);
     } catch (e: any) {
@@ -107,7 +107,7 @@ export default function App() {
         { enter_battle: { opponent } },
         [new Coin("ultrn", 500000), new Coin("uluna", 500)]
       );
-      const tx = await post({ msgs: [msg], chainID: "columbus-5" });
+      const tx = await post({ msgs: [msg as any], chainID: "columbus-5" });
       setMessage("Battle complete! Tx: " + tx.txhash);
       setTimeout(() => { loadRobot(); loadGameStats(); }, 3000);
     } catch (e: any) {
@@ -126,7 +126,7 @@ export default function App() {
         { upgrade_stat: { stat } },
         [new Coin("ultrn", 2000000)]
       );
-      const tx = await post({ msgs: [msg], chainID: "columbus-5" });
+      const tx = await post({ msgs: [msg as any], chainID: "columbus-5" });
       setMessage("Stat upgraded! Tx: " + tx.txhash);
       setTimeout(loadRobot, 3000);
     } catch (e: any) {

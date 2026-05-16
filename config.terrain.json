@@ -1,0 +1,22 @@
+{
+  "network": {
+    "mainnet": {
+      "chainID": "columbus-5",
+      "lcd": "https://terra-classic-lcd.publicnode.com",
+      "gas": "auto",
+      "gasPrices": "28.325uluna",
+      "gasAdjustment": "1.4"
+    }
+  },
+  "contracts": {
+    "lunctron-wars": {
+      "instantiateMsg": {
+        "dev_wallet": "terra148y9qpn69rcfaxxzwxh8ggjxlg97ptaykareve",
+        "reward_pool": "terra1lz8ydstxjzs77xwvunxkf0t3ltzd4u38pyg8mc",
+        "ltrn_entry_fee": "500000",
+        "lunc_entry_fee": "500",
+        "daily_battle_cap": 20
+      }
+    }
+  }
+}

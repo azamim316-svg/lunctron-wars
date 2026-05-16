@@ -1,0 +1,14 @@
+{
+  "name": "lunctron-wars",
+  "version": "1.0.0",
+  "description": "",
+  "dependencies": {
+    "@terra-money/feather.js": "^1.0.4",
+    "@terra-money/terrain": "^0.8.0"
+  },
+  "workspaces": [
+    "frontend"
+  ],
+  "author": "Terra Money <core@terra.money>",
+  "license": "ISC"
+}

@@ -19,7 +19,7 @@
     "@cosmos-kit/walletconnect": "^2.15.1",
     "@keplr-wallet/wc-client": "^0.13.34",
     "@keplr-wallet/wc-qrcode-modal": "^0.13.34",
-    "@terra-money/feather.js": "^2.1.0-beta.3",
+    "@terra-money/terra.js": "^3.1.10",
     "@walletconnect/modal": "^2.7.0",
     "@walletconnect/sign-client": "^2.23.9",
     "buffer": "^6.0.3",

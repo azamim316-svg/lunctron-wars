@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { LCDClient, MsgExecuteContract, Coin } from "@terra-money/feather.js";
+import { LCDClient, MsgExecuteContract, Coin } from "@terra-money/terra.js";
 import "./App.css";
 
 const CONTRACT = "terra1fldmn62qm52qarx6k63v5mrkypccvpmtnxes7z9s9dc6vsmmnd2qwrs65x";
@@ -31,13 +31,9 @@ const TERRA_CLASSIC_CHAIN = {
 };
 
 const terra = new LCDClient({
-  "columbus-5": {
-    lcd: "https://terra-classic-lcd.publicnode.com",
-    chainID: "columbus-5",
-    gasAdjustment: 1.4,
-    gasPrices: { uluna: 28.325 },
-    prefix: "terra",
-  },
+  URL: "https://terra-classic-lcd.publicnode.com",
+  chainID: "columbus-5",
+  isClassic: true,
 });
 
 const ROBOT_IMAGES: Record<string, string> = {
@@ -95,7 +91,7 @@ export default function App() {
     } catch {}
   }
 
-  // ── Init WalletConnect ────────────────────────────────────
+  // ── WalletConnect ─────────────────────────────────────────
   async function getWcClient() {
     if (wcClient) return wcClient;
     const { default: SignClient } = await import("@walletconnect/sign-client");
@@ -112,10 +108,9 @@ export default function App() {
     return client;
   }
 
-  // ── WalletConnect (mobile QR) ─────────────────────────────
   async function connectViaWalletConnect(walletName: string) {
     try {
-      setMessage("Opening QR code...");
+      setMessage("Opening connection...");
       const client = await getWcClient();
       const { uri, approval } = await client.connect({
         requiredNamespaces: {
@@ -126,7 +121,6 @@ export default function App() {
           },
         },
       });
-
       if (uri) {
         const { WalletConnectModal } = await import("@walletconnect/modal");
         const modal = new WalletConnectModal({
@@ -151,14 +145,13 @@ export default function App() {
   // ── Connect Keplr Desktop ─────────────────────────────────
   async function connectKeplrDesktop() {
     try {
-      // Wait for Keplr to inject into window
       let keplr = (window as any).keplr;
       if (!keplr) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         keplr = (window as any).keplr;
       }
       if (!keplr) {
-        setMessage("Keplr not detected. Make sure it is installed, unlocked, and refresh the page.");
+        setMessage("Keplr not detected. Install it and refresh.");
         setShowWallets(false);
         return;
       }
@@ -185,7 +178,7 @@ export default function App() {
       }
       if (!galaxy) {
         window.open("https://chromewebstore.google.com/detail/galaxy-station-wallet/akckefnapafjbpphkefbpkpcamkoaoai", "_blank");
-        setMessage("Galaxy Station not found. Install the extension and refresh.");
+        setMessage("Galaxy Station not found. Install it and refresh.");
         setShowWallets(false);
         return;
       }
@@ -212,11 +205,8 @@ export default function App() {
         });
       } catch {}
     }
-    setAddress("");
-    setWalletType("");
-    setRobot(null);
-    setWcSession(null);
-    setMessage("");
+    setAddress(""); setWalletType(""); setRobot(null);
+    setWcSession(null); setMessage("");
   }
 
   // ── Post transaction ──────────────────────────────────────
@@ -232,7 +222,7 @@ export default function App() {
           sender: msg.sender,
           contract: msg.contract,
           msg: msg.execute_msg || msg.msg,
-          funds: msg.coins?.toArray().map((c: any) => ({
+          funds: msg.coins?.toArray?.().map((c: any) => ({
             denom: c.denom,
             amount: c.amount.toString()
           })) || [],
@@ -263,21 +253,17 @@ export default function App() {
       }).then(r => r.json());
       return { txhash: broadcastResult?.tx_response?.txhash || "pending" };
     }
-
     if (walletType === "galaxy") {
       const galaxy = (window as any).station || (window as any).galaxystation;
       const tx = await galaxy.post({ msgs, chainID: CHAIN_ID });
       return tx;
     }
-
     if (walletType.endsWith("-wc")) {
       throw new Error("Mobile transaction signing coming soon!");
     }
-
     throw new Error("No wallet connected");
   }
 
-  // ── Game actions ──────────────────────────────────────────
   async function registerRobot() {
     if (!address) return;
     setLoading(true); setMessage("");
@@ -297,7 +283,7 @@ export default function App() {
       const msg = new MsgExecuteContract(
         address, CONTRACT,
         { enter_battle: { opponent } },
-        [new Coin("ultrn", 500000), new Coin("uluna", 500)]
+        { uluna: "500", ultrn: "500000" }
       );
       const tx = await postTx([msg as any]);
       setMessage("Battle complete! Tx: " + tx.txhash);
@@ -313,7 +299,7 @@ export default function App() {
       const msg = new MsgExecuteContract(
         address, CONTRACT,
         { upgrade_stat: { stat } },
-        [new Coin("ultrn", 2000000)]
+        { ultrn: "2000000" }
       );
       const tx = await postTx([msg as any]);
       setMessage("Stat upgraded! Tx: " + tx.txhash);
@@ -357,7 +343,7 @@ export default function App() {
                   Galaxy Station
                 </button>
               </>}
-              <div className="wallet-section-label">📱 Mobile Wallets (QR Code)</div>
+              <div className="wallet-section-label">📱 Mobile Wallets</div>
               <button onClick={() => connectViaWalletConnect("keplr")} className="wallet-option">
                 <img src="https://assets.terra.money/icon/wallet-provider/keplr.png" alt="" width="20" height="20"/>
                 Keplr Mobile
@@ -400,7 +386,6 @@ export default function App() {
                 </button>
               )}
             </div>
-
             {gameStats && (
               <div className="stats-row">
                 <div className="stat-card">
@@ -417,7 +402,6 @@ export default function App() {
                 </div>
               </div>
             )}
-
             <div className="classes-section">
               <h2 className="section-title">Choose Your Fighter</h2>
               <div className="classes-grid">

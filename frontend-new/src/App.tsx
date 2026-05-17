@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { LCDClient, MsgExecuteContract, Coin } from "@terra-money/terra.js";
+import { LCDClient, MsgExecuteContract } from "@terra-money/terra.js";
 import "./App.css";
 
 const CONTRACT = "terra1fldmn62qm52qarx6k63v5mrkypccvpmtnxes7z9s9dc6vsmmnd2qwrs65x";

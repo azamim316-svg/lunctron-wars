@@ -11,7 +11,10 @@ export default defineConfig({
     }),
   ],
   optimizeDeps: {
-    include: ['@terra-money/feather.js'],
+    include: [
+      '@terra-money/feather.js',
+      '@terra-money/terra.proto',
+    ],
   },
   build: {
     target: 'es2020',

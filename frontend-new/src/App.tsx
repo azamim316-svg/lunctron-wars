@@ -152,9 +152,10 @@ export default function App() {
       });
 
       if (uri) {
+        // Universal links work better than custom schemes on Android
         const deepLinks: Record<string, string> = {
-          keplr: `keplr://wc?uri=${encodeURIComponent(uri)}`,
-          galaxy: `galaxystation://wc?uri=${encodeURIComponent(uri)}`,
+          keplr: `https://keplrwallet.app/wc?uri=${encodeURIComponent(uri)}`,
+          galaxy: `https://station.terraclassic.community/wc?uri=${encodeURIComponent(uri)}`,
           luncdash: `luncdash://wc?uri=${encodeURIComponent(uri)}`,
         };
 

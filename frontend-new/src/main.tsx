@@ -63,7 +63,7 @@ createRoot(document.getElementById('root')!).render(
     <ChainProvider
       chains={[terraClassicChain as any]}
       assetLists={[terraClassicAssets as any]}
-      wallets={[...keplrExtension, ...keplrMobile]}
+      wallets={[...keplrExtension, ...keplrMobile] as any}
       walletConnectOptions={{
         signClient: {
           projectId: '54aab0c16932375eebc8fc7aefb383ea',

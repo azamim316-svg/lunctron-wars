@@ -76,20 +76,20 @@ export default function App() {
   useEffect(() => { loadGameStats(); }, []);
   useEffect(() => { if (address) loadRobot(); }, [address]);
 
-// Auto-connect if inside wallet browser
-useEffect(() => {
-  const timer = setTimeout(async () => {
-    if (isConnected) return;
-    const keplr = (window as any).keplr;
-    const galaxy = (window as any).station || (window as any).galaxystation;
-    if (keplr && isMobile) {
-      await connectKeplrDesktop();
-    } else if (galaxy && isMobile) {
-      await connectGalaxyDesktop();
-    }
-  }, 1000);
-  return () => clearTimeout(timer);
-}, []);
+  // Auto-connect if inside wallet browser
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (isConnected) return;
+      const keplr = (window as any).keplr;
+      const galaxy = (window as any).station || (window as any).galaxystation;
+      if (keplr && isMobile) {
+        await connectKeplrDesktop();
+      } else if (galaxy && isMobile) {
+        await connectGalaxyDesktop();
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const loadRobot = useCallback(async () => {
     if (!address) return;
@@ -123,9 +123,11 @@ useEffect(() => {
     return client;
   }
 
+  // ── Deep link wallet connection ───────────────────────────
   async function connectViaWalletConnect(walletName: string) {
     try {
-      setMessage("Opening connection...");
+      setMessage("Connecting...");
+      setShowWallets(false);
       const client = await getWcClient();
       const { uri, approval } = await client.connect({
         requiredNamespaces: {
@@ -136,20 +138,29 @@ useEffect(() => {
           },
         },
       });
+
       if (uri) {
-        const { WalletConnectModal } = await import("@walletconnect/modal");
-        const modal = new WalletConnectModal({
-          projectId: WC_PROJECT_ID,
-          themeMode: "dark",
-        });
-        await modal.openModal({ uri });
+        // Generate deep link based on wallet
+        let deepLink = "";
+        if (walletName === "keplr") {
+          deepLink = `keplr://wc?uri=${encodeURIComponent(uri)}`;
+        } else if (walletName === "galaxy") {
+          deepLink = `galaxystation://wc?uri=${encodeURIComponent(uri)}`;
+        } else if (walletName === "luncdash") {
+          deepLink = `luncdash://wc?uri=${encodeURIComponent(uri)}`;
+        }
+
+        if (deepLink) {
+          // Open deep link to launch wallet app directly
+          window.location.href = deepLink;
+        }
+
+        // Wait for wallet to approve
         const session = await approval();
-        modal.closeModal();
         setWcSession(session);
         const addr = session.namespaces.cosmos.accounts[0].split(":")[2];
         setAddress(addr);
         setWalletType(walletName + "-wc");
-        setShowWallets(false);
         setMessage("");
       }
     } catch (e: any) {

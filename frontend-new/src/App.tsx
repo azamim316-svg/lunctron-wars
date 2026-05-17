@@ -143,7 +143,7 @@ export default function App() {
         // Generate deep link based on wallet
         let deepLink = "";
         if (walletName === "keplr") {
-          deepLink = `keplr://wc?uri=${encodeURIComponent(uri)}`;
+          deepLink = `keplrwallet://wc?uri=${encodeURIComponent(uri)}`;
         } else if (walletName === "galaxy") {
           deepLink = `galaxystation://wc?uri=${encodeURIComponent(uri)}`;
         } else if (walletName === "luncdash") {

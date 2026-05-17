@@ -6,25 +6,20 @@ export default defineConfig({
   plugins: [
     react(),
     nodePolyfills({
-      include: ['buffer', 'util', 'stream', 'crypto'],
+      include: ['buffer', 'util', 'stream', 'crypto', 'events', 'path'],
       globals: { Buffer: true, global: true, process: true },
     }),
   ],
-  optimizeDeps: {
-    include: ['@terra-money/feather.js'],
-    esbuildOptions: {
-      target: 'es2020',
-    },
-  },
   build: {
     target: 'es2020',
     commonjsOptions: {
       transformMixedEsModules: true,
+      include: [/terra/, /node_modules/],
     },
-    rollupOptions: {
-      external: [
-        /@terra-money\/terra\.proto\/.*/,
-      ],
-    },
+  },
+  optimizeDeps: {
+    include: [
+      '@terra-money/terra.js',
+    ],
   },
 })

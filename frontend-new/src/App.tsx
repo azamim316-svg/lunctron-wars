@@ -106,7 +106,7 @@ export default function App() {
     } catch {}
   }
 
-  // ── WalletConnect ─────────────────────────────────────────
+  // ── WalletConnect client ──────────────────────────────────
   async function getWcClient() {
     if (wcClient) return wcClient;
     const { default: SignClient } = await import("@walletconnect/sign-client");
@@ -123,7 +123,7 @@ export default function App() {
     return client;
   }
 
-  // ── Deep link wallet connection ───────────────────────────
+  // ── Deep link + QR wallet connection ─────────────────────
   async function connectViaWalletConnect(walletName: string) {
     try {
       setMessage("Connecting...");
@@ -140,22 +140,31 @@ export default function App() {
       });
 
       if (uri) {
-        // Generate deep link based on wallet
-        let deepLink = "";
-        if (walletName === "keplr") {
-          deepLink = `keplrwallet://wc?uri=${encodeURIComponent(uri)}`;
-        } else if (walletName === "galaxy") {
-          deepLink = `galaxystation://wc?uri=${encodeURIComponent(uri)}`;
-        } else if (walletName === "luncdash") {
-          deepLink = `luncdash://wc?uri=${encodeURIComponent(uri)}`;
-        }
+        // Deep link formats for each wallet
+        const deepLinks: Record<string, string> = {
+          keplr: `keplr://wc?uri=${encodeURIComponent(uri)}`,
+          galaxy: `galaxystation://wc?uri=${encodeURIComponent(uri)}`,
+          luncdash: `luncdash://wc?uri=${encodeURIComponent(uri)}`,
+        };
 
+        const deepLink = deepLinks[walletName];
+
+        // Show QR modal briefly then redirect to app
+        const { WalletConnectModal } = await import("@walletconnect/modal");
+        const modal = new WalletConnectModal({
+          projectId: WC_PROJECT_ID,
+          themeMode: "dark",
+        });
+        modal.openModal({ uri });
+
+        // After 800ms open the wallet app via deep link
         if (deepLink) {
-          // Open deep link to launch wallet app directly
-          window.location.href = deepLink;
+          setTimeout(() => {
+            window.location.href = deepLink;
+          }, 800);
         }
 
-        // Wait for wallet to approve
+        // Wait for wallet approval
         const session = await approval();
         setWcSession(session);
         const addr = session.namespaces.cosmos.accounts[0].split(":")[2];

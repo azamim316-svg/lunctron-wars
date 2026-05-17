@@ -11,11 +11,7 @@ export default defineConfig({
     }),
   ],
   optimizeDeps: {
-    include: [
-      '@terra-money/feather.js',
-      '@terra-money/terra.proto',
-      '@terra-money/terra.proto/terra/smartaccount/v1/tx',
-    ],
+    include: ['@terra-money/feather.js'],
     esbuildOptions: {
       target: 'es2020',
     },
@@ -25,11 +21,10 @@ export default defineConfig({
     commonjsOptions: {
       transformMixedEsModules: true,
     },
-  },
-  resolve: {
-    alias: {
-      '@terra-money/terra.proto/terra/smartaccount/v1/tx': 
-        '/node_modules/@terra-money/terra.proto/terra/smartaccount/v1/tx.js',
+    rollupOptions: {
+      external: [
+        /@terra-money\/terra\.proto\/.*/,
+      ],
     },
   },
 })

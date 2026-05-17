@@ -5,6 +5,7 @@ import "./App.css";
 const CONTRACT = "terra1fldmn62qm52qarx6k63v5mrkypccvpmtnxes7z9s9dc6vsmmnd2qwrs65x";
 const CHAIN_ID = "columbus-5";
 const WC_PROJECT_ID = "54aab0c16932375eebc8fc7aefb383ea";
+const GAME_URL = "https://peaceful-crisp-fdf816.netlify.app";
 
 const TERRA_CLASSIC_CHAIN = {
   chainId: "columbus-5",
@@ -123,10 +124,17 @@ export default function App() {
     return client;
   }
 
-  // ── Deep link + QR wallet connection ─────────────────────
-  async function connectViaWalletConnect(walletName: string) {
+  // ── Open game in Keplr browser (best mobile experience) ───
+  function openInKeplrBrowser() {
+    const keplrDeepLink = `https://deeplink.keplr.app/web-browser?url=${encodeURIComponent(GAME_URL)}`;
+    window.location.href = keplrDeepLink;
+    setShowWallets(false);
+  }
+
+  // ── LuncDash WalletConnect ────────────────────────────────
+  async function connectLuncDash() {
     try {
-      setMessage("Connecting...");
+      setMessage("Connecting to LuncDash...");
       setShowWallets(false);
       const client = await getWcClient();
       const { uri, approval } = await client.connect({
@@ -142,26 +150,12 @@ export default function App() {
             events: ["chainChanged", "accountsChanged"],
           },
         },
-        optionalNamespaces: {
-          cosmos: {
-            methods: ["cosmos_signAmino", "cosmos_signDirect"],
-            chains: [`cosmos:columbus-5`],
-            events: [],
-          },
-        },
       });
 
       if (uri) {
-        // Universal links work better than custom schemes on Android
-        const deepLinks: Record<string, string> = {
-          keplr: `https://keplrwallet.app/wc?uri=${encodeURIComponent(uri)}`,
-          galaxy: `https://station.terraclassic.community/wc?uri=${encodeURIComponent(uri)}`,
-          luncdash: `luncdash://wc?uri=${encodeURIComponent(uri)}`,
-        };
+        const deepLink = `luncdash://wc?uri=${encodeURIComponent(uri)}`;
 
-        const deepLink = deepLinks[walletName];
-
-        // Show QR modal briefly then redirect to app
+        // Show QR briefly then open LuncDash
         const { WalletConnectModal } = await import("@walletconnect/modal");
         const modal = new WalletConnectModal({
           projectId: WC_PROJECT_ID,
@@ -169,23 +163,19 @@ export default function App() {
         });
         modal.openModal({ uri });
 
-        // After 800ms open the wallet app via deep link
-        if (deepLink) {
-          setTimeout(() => {
-            window.location.href = deepLink;
-          }, 800);
-        }
+        setTimeout(() => {
+          window.location.href = deepLink;
+        }, 800);
 
-        // Wait for wallet approval
         const session = await approval();
         setWcSession(session);
         const addr = session.namespaces.cosmos.accounts[0].split(":")[2];
         setAddress(addr);
-        setWalletType(walletName + "-wc");
+        setWalletType("luncdash-wc");
         setMessage("");
       }
     } catch (e: any) {
-      setMessage("Connection error: " + e.message);
+      setMessage("LuncDash connection error: " + e.message);
     }
   }
 
@@ -391,15 +381,11 @@ export default function App() {
                 </button>
               </>}
               <div className="wallet-section-label">📱 Mobile Wallets</div>
-              <button onClick={() => connectViaWalletConnect("keplr")} className="wallet-option">
+              <button onClick={openInKeplrBrowser} className="wallet-option">
                 <img src="https://assets.terra.money/icon/wallet-provider/keplr.png" alt="" width="20" height="20"/>
                 Keplr Mobile
               </button>
-              <button onClick={() => connectViaWalletConnect("galaxy")} className="wallet-option">
-                <img src="https://station.terraclassic.community/favicon.ico" alt="" width="20" height="20"/>
-                Galaxy Station Mobile
-              </button>
-              <button onClick={() => connectViaWalletConnect("luncdash")} className="wallet-option">
+              <button onClick={connectLuncDash} className="wallet-option">
                 🌙 LuncDash Mobile
               </button>
             </div>

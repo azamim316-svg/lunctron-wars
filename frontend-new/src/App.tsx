@@ -132,15 +132,26 @@ export default function App() {
       const { uri, approval } = await client.connect({
         requiredNamespaces: {
           cosmos: {
-            methods: ["cosmos_signAmino", "cosmos_signDirect"],
-            chains: [`cosmos:${CHAIN_ID}`],
+            methods: [
+              "cosmos_signAmino",
+              "cosmos_signDirect",
+              "cosmos_sendTransaction",
+              "cosmos_getAccounts",
+            ],
+            chains: [`cosmos:columbus-5`],
             events: ["chainChanged", "accountsChanged"],
+          },
+        },
+        optionalNamespaces: {
+          cosmos: {
+            methods: ["cosmos_signAmino", "cosmos_signDirect"],
+            chains: [`cosmos:columbus-5`],
+            events: [],
           },
         },
       });
 
       if (uri) {
-        // Deep link formats for each wallet
         const deepLinks: Record<string, string> = {
           keplr: `keplr://wc?uri=${encodeURIComponent(uri)}`,
           galaxy: `galaxystation://wc?uri=${encodeURIComponent(uri)}`,

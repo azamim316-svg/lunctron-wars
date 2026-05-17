@@ -14,12 +14,22 @@ export default defineConfig({
     include: [
       '@terra-money/feather.js',
       '@terra-money/terra.proto',
+      '@terra-money/terra.proto/terra/smartaccount/v1/tx',
     ],
+    esbuildOptions: {
+      target: 'es2020',
+    },
   },
   build: {
     target: 'es2020',
     commonjsOptions: {
       transformMixedEsModules: true,
+    },
+  },
+  resolve: {
+    alias: {
+      '@terra-money/terra.proto/terra/smartaccount/v1/tx': 
+        '/node_modules/@terra-money/terra.proto/terra/smartaccount/v1/tx.js',
     },
   },
 })

@@ -76,6 +76,21 @@ export default function App() {
   useEffect(() => { loadGameStats(); }, []);
   useEffect(() => { if (address) loadRobot(); }, [address]);
 
+// Auto-connect if inside wallet browser
+useEffect(() => {
+  const timer = setTimeout(async () => {
+    if (isConnected) return;
+    const keplr = (window as any).keplr;
+    const galaxy = (window as any).station || (window as any).galaxystation;
+    if (keplr && isMobile) {
+      await connectKeplrDesktop();
+    } else if (galaxy && isMobile) {
+      await connectGalaxyDesktop();
+    }
+  }, 1000);
+  return () => clearTimeout(timer);
+}, []);
+
   const loadRobot = useCallback(async () => {
     if (!address) return;
     try {
